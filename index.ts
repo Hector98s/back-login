@@ -42,53 +42,52 @@ app.get('/api/auth/testing', (req:Request, res:Response) => {
 app.post('/api/auth/login', async (req:Request,res:Response) =>{
     const { userName, password } = req.body;
 
-    
-
- 
-
-    //mockUSer 
-    const mockUser= {
-    id:1,
-    userName: 'ivan',
-    password: '123',
-    roles: ['admin','super']    
-    }
- 
-
-    if (userName == 'ivan' && password == '123'){
-        
-    jwt.sign(mockUser, 'secretkeyword',{expiresIn:'120s'},(err:any, token)=>{ 
-
-        if(err) {
-            return res.status(500).json({
+    const user = await mongoDB.db.collection('users').findOne({email: userName})
+     //existe el usuario
+    if(user){
+        if(!bcrypt.compareSync(password, user.password)){
+            return res.status(403).json({
                 ok: false,
-                msg: `ssss`,
-                err
-
-            })
+                msg: 'lo sentimos no es valido'
+            });
         }
 
-        res.status(200).json({
-            ok:true,
-            msg: 'el usuario es correcto',
-            payload:{
-                userName:mockUser.userName,
-                roles: mockUser.roles
-            },
-            token
+        const userValid={
+            uid: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            urlPhoto: user.urlPhoto,
+            rol: user.rol
+        }
+
+        jwt.sign(userValid, 'secretkeyword',{ expiresIn: '120s'}, (err:any, token)=>{
+
+            if (err){
+                return res.status(500).json({
+                    ok: false,
+                    msg: 'ocurrio un error',
+                    err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                msg: 'el usuario se autentico correcto',
+                token
+      
+               });
         });
-    });
-}
-    
+    }
     else{
-        res.status(403).json({
-            ok: true,
-            msj: 'el usuario es incorrecto'
+        res.status(404).json({
+            ok:true,
+            msg:'no existe',
+            token
         });
     }
         
-
-
+      
+     
      
 });
 
