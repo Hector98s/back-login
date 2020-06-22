@@ -69,42 +69,55 @@ app.get('/api/auth/testing', function (req, res) {
     });
 });
 app.post('/api/auth/login', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, userName, password, mockUser;
+    var _a, userName, password, user, userValid;
     return __generator(this, function (_b) {
-        _a = req.body, userName = _a.userName, password = _a.password;
-        mockUser = {
-            id: 1,
-            userName: 'ivan',
-            password: '123',
-            roles: ['admin', 'super']
-        };
-        if (userName == 'ivan' && password == '123') {
-            jsonwebtoken_1.default.sign(mockUser, 'secretkeyword', { expiresIn: '120s' }, function (err, token) {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        msg: "ssss",
-                        err: err
+        switch (_b.label) {
+            case 0:
+                _a = req.body, userName = _a.userName, password = _a.password;
+                return [4 /*yield*/, mongoDB.db.collection('users').findOne({ email: userName })
+                    //existe el usuario
+                ];
+            case 1:
+                user = _b.sent();
+                //existe el usuario
+                if (user) {
+                    if (!bcryptjs_1.default.compareSync(password, user.password)) {
+                        return [2 /*return*/, res.status(403).json({
+                                ok: false,
+                                msg: 'lo sentimos no es valido'
+                            })];
+                    }
+                    userValid = {
+                        uid: user._id,
+                        email: user.email,
+                        fullName: user.fullName,
+                        urlPhoto: user.urlPhoto,
+                        rol: user.rol
+                    };
+                    jsonwebtoken_1.default.sign(userValid, 'secretkeyword', { expiresIn: '120s' }, function (err, token) {
+                        if (err) {
+                            return res.status(500).json({
+                                ok: false,
+                                msg: 'ocurrio un error',
+                                err: err
+                            });
+                        }
+                        res.status(200).json({
+                            ok: true,
+                            msg: 'el usuario se autentico correcto',
+                            token: token
+                        });
                     });
                 }
-                res.status(200).json({
-                    ok: true,
-                    msg: 'el usuario es correcto',
-                    payload: {
-                        userName: mockUser.userName,
-                        roles: mockUser.roles
-                    },
-                    token: token
-                });
-            });
+                else {
+                    res.status(404).json({
+                        ok: true,
+                        msg: 'no existe',
+                        token: token
+                    });
+                }
+                return [2 /*return*/];
         }
-        else {
-            res.status(403).json({
-                ok: true,
-                msj: 'el usuario es incorrecto'
-            });
-        }
-        return [2 /*return*/];
     });
 }); });
 app.get('/test', function (req, res) {
